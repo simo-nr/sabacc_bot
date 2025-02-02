@@ -26,13 +26,13 @@ FLAGS = flags.FLAGS
 
 # Game strings can just contain the name or the name followed by parameters
 # and arguments, e.g. "breakthrough(rows=6,columns=6)"
-flags.DEFINE_string("game_string", "tic_tac_toe", "Game string")
+flags.DEFINE_string("game_string", "spike_sabacc", "Game string")
 
 
 def main(_):
   games_list = pyspiel.registered_games()
-  print("Registered games:")
-  print(games_list)
+  # print("Registered games:")
+  # print(games_list)
 
   action_string = None
 
@@ -49,6 +49,7 @@ def main(_):
     # The state can be three different types: chance node,
     # simultaneous node, or decision node
     if state.is_chance_node():
+      print("Chance node")
       # Chance node: sample an outcome
       outcomes = state.chance_outcomes()
       num_actions = len(outcomes)
@@ -59,6 +60,7 @@ def main(_):
             state.action_to_string(state.current_player(), action))
       state.apply_action(action)
     elif state.is_simultaneous_node():
+      print("Simultaneous node")
       # Simultaneous node: sample actions for all players.
       random_choice = lambda a: np.random.choice(a) if a else [0]
       chosen_actions = [
@@ -71,6 +73,7 @@ def main(_):
       ])
       state.apply_actions(chosen_actions)
     else:
+      print("Decision node")
       # Decision node: sample action for the single current player
       action = random.choice(state.legal_actions(state.current_player()))
       action_string = state.action_to_string(state.current_player(), action)

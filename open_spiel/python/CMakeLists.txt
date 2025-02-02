@@ -225,8 +225,10 @@ set(PYTHON_TESTS ${PYTHON_TESTS}
   games/dynamic_routing_test.py
   games/dynamic_routing_utils_test.py
   games/liars_poker_test.py
+  games/spike_sabacc_test.py
   games/team_dominoes_test.py
   games/tic_tac_toe_test.py
+  games/new_game_test.py
   mfg/algorithms/best_response_value_test.py
   mfg/algorithms/mirror_descent_test.py
   mfg/algorithms/greedy_policy_test.py
