@@ -107,6 +107,9 @@ class SpikeSabaccState(pyspiel.State):
         self._current_player = 0
         self.game_over = False
 
+    def get_bets(self):
+        return self.bets
+
     def __str__(self):
         """String representation for debugging."""
         return (
@@ -116,7 +119,8 @@ class SpikeSabaccState(pyspiel.State):
     
     def is_chance_node(self):
       """Returns whether the current node is a chance node."""
-      return self.current_phase == 1
+      # currently never, later add dice phase
+      return 0
 
     def current_player(self):
         """Returns the current player."""
@@ -126,34 +130,35 @@ class SpikeSabaccState(pyspiel.State):
 
     def legal_actions(self, player):
         """Returns the list of legal actions for the given player."""
-        if self.game_over:
+        if self.game_over or self.hands[player] == []:
             return []
-        elif self.is_chance_node():
+        elif self.current_phase == 0:
             return [STAND_ACTION, DRAW_ACTION]
         else:
             return [BET_ACTION, FOLD_ACTION]
-        # print("deck list: ", list(range(len(_DECK))))
-        # print("offset: ", BID_ACTION_OFFSET)
-        # print("legal actions: ", list(range(len(_DECK))) + [BID_ACTION_OFFSET])
-        # return list(range(len(_DECK))) + [BID_ACTION_OFFSET]  # Draw a card or place a bet
 
     def apply_action(self, action):
         """Applies the chosen action."""
-        if action < len(_DECK):
-            # Replace a card in hand with the chosen new card
-            self.hands[self.current_player()].append(_DECK[action])
-            self.hands[self.current_player()].pop(0)  # Remove the oldest card
-        else:
-            # Betting logic (for now, simple tracking)
+        if action == DRAW_ACTION:
+            self.hands[self.current_player()].append(self._deck.pop())
+        elif action == BET_ACTION:
             self.bets[self.current_player()] += 1
+        elif action == FOLD_ACTION:
+            # fold by removing the player's hand
+            self.hands[self.current_player()] = []
         
         # Move to the next player
         self._current_player = (self.current_player() + 1) % self._num_players
+        # Move to the next phase or round
         if self.current_player() == 0:
-            self.current_round += 1
+            if self.current_phase == 0:
+                self.current_phase += 1
+            elif self.current_phase == 1:
+                self.current_round += 1
+                self.current_phase = 0
         
         # Check if game is over
-        if self.current_round >= _NUM_ROUNDS:
+        if self.current_round >= _NUM_ROUNDS or self.one_player_left(self.hands):
             self.game_over = True
 
     def _action_to_string(self, player, action):
@@ -169,7 +174,12 @@ class SpikeSabaccState(pyspiel.State):
         elif action == FOLD_ACTION:
             return "Fold"
         else:
+            print("action: ", action)
             raise ValueError(f"Unknown action: {action}")
+        
+    def phase_to_string(self, phase):
+        """Phase -> string."""
+        return ["Drawing", "Betting"][phase]
     
     def chance_outcomes(self):
       """Returns possible chance outcomes and their probabilities."""
@@ -180,8 +190,13 @@ class SpikeSabaccState(pyspiel.State):
 
     def is_terminal(self):
         """Returns whether the game is over."""
+        # or all but one player folded
         return self.game_over
-
+    
+    def one_player_left(self, hands):
+        """Returns whether only one player has a non-empty hand."""
+        return sum([len(hand) > 0 for hand in hands]) == 1
+    
     def returns(self):
         """Returns the final scores for all players."""
         if not self.game_over:
@@ -189,325 +204,86 @@ class SpikeSabaccState(pyspiel.State):
         
         # Compute final hand values
         hand_sums = [sum(hand) for hand in self.hands]
-        winner = min(range(self._num_players), key=lambda i: abs(hand_sums[i]))
+        # min score of player without empty hand
+        winning_score = min([sum(hand) for hand in self.hands if hand != []])
+        # Filter out players with empty hands
+        valid_players = [i for i in range(self._num_players) if self.hands[i]] 
+        winners = {i for i in valid_players if hand_sums[i] == winning_score}
         
         # Assign winnings
-        winnings = sum(self.bets)
-        return [winnings if i == winner else -self.bets[i] for i in range(self._num_players)]
-
-
-
-class SpikeSabaccState2(pyspiel.State):
-  """A python version of the Liars Poker state."""
-
-  def winner(self):
-    """Returns the id of the winner if the bid originator has won.
-
-    -1 otherwise.
-    """
-    return self._winner
-
-  def loser(self):
-    """Returns the id of the loser if the bid originator has lost.
-
-    -1 otherwise.
-    """
-    return self._loser
-
-  def _is_challenge_possible(self):
-    """A challenge is possible once the first bid is made."""
-    return self._current_action != -1
-
-  def _is_rebid_possible(self):
-    """A rebid is only possible when all players have challenged the original bid."""
-    return not self.is_rebid and self._num_challenges == self._num_players - 1
-
-  def _legal_actions(self, player):
-    """Returns a list of legal actions, sorted in ascending order."""
-    assert player >= 0
-    actions = []
-
-    if self._is_challenge_possible():
-      actions.append(CHALLENGE_ACTION)
-
-    if player != self._bid_originator or self._is_rebid_possible():
-      # Any move higher than the current bid is allowed.
-      # Bids start at BID_ACTION_OFFSET (1) as 0 represents the challenge
-      # action.
-      for bid in range(
-          max(BID_ACTION_OFFSET, self._current_action + 1), self._max_bid + 1
-      ):
-        actions.append(bid)
-
-    return actions
-
-  def chance_outcomes(self):
-    """Returns the possible chance outcomes and their probabilities."""
-    assert self.is_chance_node()
-    probability = 1.0 / self._num_digits
-    return [(digit, probability) for digit in self._deck]
-
-  def _decode_bid(self, bid):
-    """Turns a bid ID to a (count, number) tuple.
-
-    For example, take 2 players each with 2 numbers from the deck of 1, 2, and
-    3.
-      - A bid of two 1's would correspond to a bid id 1.
-        - Explanation: 1 is the lowest number, and the only lower bid would be
-        zero 1's.
-      - A bid of three 3's would correspond to a bid id 10.
-        - Explanation: 1-4 1's take bid ids 0-3. 1-4 2's take bid ids 4-7. 1 and
-        2 3's take bid ids 8 and 9.
-
-    Args:
-      bid: Bid ID in the range 0 to self._max_bid (non-inclusive).
-
-    Returns:
-      A tuple of (count, number). For example, (1, 2) represents one 2's.
-    """
-    number = bid % self._num_digits + 1
-    count = bid // self._num_digits + 1
-    return (count, number)
-
-  def encode_bid(self, count, number):
-    """Turns a count and number into a bid ID.
-
-    Bid ID is in the range 0 to self._max_bid (non-inclusive).
-
-    For example, take 2 players each with 2 numbers from the deck of 1, 2, and
-    3.
-      - A count of 2 and number of 1 would be a bid of two one's and a bid id 1.
-        - Explanation: 1 is the lowest number, and the only lower bid would be
-        zero 1's
-          corresponding to bid id 0.
-
-    Args:
-      count: The count of the bid.
-      number: The number of the bid.
-
-    Returns:
-      A single bid ID.
-    """
-    return (count - 1) * self._num_digits + number - 1
-
-  def _counts(self):
-    """Determines if the bid originator wins or loses."""
-    bid_count, bid_number = self._decode_bid(
-        self._current_action - BID_ACTION_OFFSET
-    )
-
-    # Count the number of bid_numbers from all players.
-    matches = 0
-    for player_id in range(self._num_players):
-      for digit in self.hands[player_id]:
-        if digit == bid_number:
-          matches += 1
-
-    # If the number of matches are at least the bid_count bid, then the bidder
-    # wins. Otherwise everyone else wins.
-    if matches >= bid_count:
-      self._winner = self._bid_originator
-    else:
-      self._loser = self._bid_originator
-
-  def _update_bid_history(self, bid, player):
-    """Writes a player's bid into memory."""
-    self.bid_history[bid][player] = 1
-
-  def _update_challenge_history(self, bid, player):
-    """Write a player's challenge for a bid into memory."""
-    self.challenge_history[bid][player] = 1
-
-  def _apply_action(self, action):
-    """Applies an action and updates the state."""
-    if self.is_chance_node():
-      # If we are still populating hands, draw a number for the current player.
-      self.hands[self._current_player].append(action)
-    elif action == CHALLENGE_ACTION:
-      assert self._is_challenge_possible()
-      self._update_challenge_history(
-          self._current_action - BID_ACTION_OFFSET, self._current_player
-      )
-      self._num_challenges += 1
-      # If there is no ongoing rebid, check if all players challenge before
-      # counting. If there is an ongoing rebid, count once all the players
-      # except the bidder challenges.
-      if (not self.is_rebid and self._num_challenges == self._num_players) or (
-          self.is_rebid and self._num_challenges == self._num_players - 1
-      ):
-        self._counts()
-    else:
-      # Set the current bid to the action.
-      self._current_action = action
-      if self._current_player == self._bid_originator:
-        # If the bid originator is bidding again, we have a rebid.
-        self.is_rebid = True
-      else:
-        # Otherwise, we have a regular bid.
-        self.is_rebid = False
-      # Set the bid originator to the current player.
-      self._bid_originator = self._current_player
-      self._update_bid_history(
-          self._current_action - BID_ACTION_OFFSET, self._current_player
-      )
-      self._num_challenges = 0
-    self._current_player = (self._current_player + 1) % self._num_players
-
-  def _action_to_string(self, player, action):
-    """Action -> string."""
-    if player == pyspiel.PlayerId.CHANCE:
-      return f"Deal: {action}"
-    elif action == CHALLENGE_ACTION:
-      return "Challenge"
-    else:
-      count, number = self._decode_bid(action - BID_ACTION_OFFSET)
-      return f"Bid: {count} of {number}"
-
-  def is_terminal(self):
-    """Returns True if the game is over."""
-    return self._winner >= 0 or self._loser >= 0
-
-  def returns(self):
-    """Total reward for each player over the course of the game so far."""
-    if self._winner != -1:
-      bidder_reward = self._num_players - 1
-      others_reward = -1.0
-    elif self._loser != -1:
-      bidder_reward = -1 * (self._num_players - 1)
-      others_reward = 1.0
-    else:
-      # Game is not over.
-      bidder_reward = 0.0
-      others_reward = 0.0
-    return [
-        others_reward if player_id != self._bid_originator else bidder_reward
-        for player_id in range(self._num_players)
-    ]
-
-  def __str__(self):
-    """String for debug purposes. No particular semantics are required."""
-    if self._current_action != -1:
-      count, number = self._decode_bid(self._current_action - BID_ACTION_OFFSET)
-    else:
-      count, number = "None", "None"
-    return (
-        "Hands: {}, Bidder: {}, Current Player: {}, Current Bid: {} of {},"
-        " Rebid: {}".format(
-            self.hands,
-            self._bid_originator,
-            self.current_player(),
-            count,
-            number,
-            self.is_rebid,
-        )
-    )
+        winnings = sum(self.bets)/len(winners)
+        return [winnings if i in winners else -self.bets[i] for i in range(self._num_players)]
 
 
 class SpikeSabaccObserver:
-  """Observer, conforming to the PyObserver interface (see observation.py).
+    """Observer for Corellian Spike Sabacc, following the PyObserver interface."""
 
-  An observation will consist of the following:
-    - One hot encoding of the current player number: [0 0 0 1 0 0 0]
-    - A vector of length hand_length containing the digits in a player's hand.
-    - Two matrices each of size (hand_length * num_digits * num_players,
-    num_players)
-      will store bids and challenges respectively. Each row in the matrix
-      corresponds
-      to a particular bid (e.g. one 1, two 5s, or eight 3s). 0 will represent no
-      action. 1 will represent a player's bid or a player's challenge.
-    - One bit for whether we are rebidding: [1] rebid occuring, [0] otherwise
-    - One bit for whether we are counting: [1] COUNTS called, [0] otherwise
-  """
+    def __init__(self, iig_obs_type, num_players, params=None):
+        """Initializes an observation tensor."""
+        del params
+        self.num_players = num_players
 
-  def __init__(
-      self, iig_obs_type, num_players, hand_length, num_digits, params=None
-  ):
-    """Initiliazes an empty observation tensor."""
-    del params
-    self.num_players = num_players
-    self.hand_length = hand_length
+        # Observation components
+        pieces = [
+            ("player", num_players, (num_players,)),  # One-hot encoding of current player
+            ("current_round", 1, (1,)),  # Current round number
+            ("current_phase", 1, (1,)),  # Drawing (0) or Betting (1)
+        ]
 
-    # Determine which observation pieces we want to include.
-    # Pieces is a list of tuples containing observation pieces.
-    # Pieces are described by their (name, number of elements, and shape).
-    pieces = [(
-        "player",
-        num_players,
-        (num_players,),
-    )]  # One-hot encoding for the player id.
-    if iig_obs_type.private_info == pyspiel.PrivateInfoType.SINGLE_PLAYER:
-      # Vector containing the digits in a player's hand
-      pieces.append(("private_hand", hand_length, (hand_length,)))
-    if iig_obs_type.public_info:
-      pieces.append(("rebid_state", 1, (1,)))
-      pieces.append(("counts_state", 1, (1,)))
-      if iig_obs_type.perfect_recall:
-        # One-hot encodings for players' moves at every round.
-        total_possible_rounds = hand_length * num_digits * num_players
-        pieces.append((
-            "bid_history",
-            total_possible_rounds * num_players,
-            (total_possible_rounds, num_players),
-        ))
-        pieces.append((
-            "challenge_history",
-            total_possible_rounds * num_players,
-            (total_possible_rounds, num_players),
-        ))
+        if iig_obs_type.private_info == pyspiel.PrivateInfoType.SINGLE_PLAYER:
+            pieces.append(("private_hand", _INITIAL_HAND_SIZE + _NUM_ROUNDS, (_INITIAL_HAND_SIZE + _NUM_ROUNDS,)))  # Player's hand
 
-    # Build the single flat tensor.
-    total_size = sum(size for name, size, shape in pieces)
-    self.tensor = np.zeros(total_size, np.float32)
+        if iig_obs_type.public_info:
+            pieces.append(("bets", num_players, (num_players,)))  # Current bets of all players
+            pieces.append(("game_over", 1, (1,)))  # Whether the game is over
 
-    # Build the named & reshaped views of the bits of the flat tensor.
-    self.dict = {}
-    index = 0
-    for name, size, shape in pieces:
-      self.dict[name] = self.tensor[index : index + size].reshape(shape)
-      index += size
+        # Build observation tensor
+        total_size = sum(size for _, size, _ in pieces)
+        self.tensor = np.zeros(total_size, np.float32)
 
-  def set_from(self, state, player):
-    """Updates `tensor` and `dict` to reflect `state` from PoV of `player`."""
-    self.tensor.fill(0)
-    if "player" in self.dict:
-      self.dict["player"][player] = 1
-    if (
-        "private_hand" in self.dict
-        and len(state.hands[player]) == self.hand_length
-    ):
-      self.dict["private_hand"] = np.asarray(state.hands[player])
-    if "rebid_state" in self.dict:
-      self.dict["rebid_state"][0] = int(state.is_rebid)
-    if "counts_state" in self.dict:
-      self.dict["counts_state"][0] = int(state.is_terminal())
-    if "bid_history" in self.dict:
-      self.dict["bid_history"] = state.bid_history
-    if "challenge_history" in self.dict:
-      self.dict["challenge_history"] = state.challenge_history
+        # Create named views of tensor
+        self.dict = {}
+        index = 0
+        for name, size, shape in pieces:
+            self.dict[name] = self.tensor[index : index + size].reshape(shape)
+            index += size
 
-  def string_from(self, state, player):
-    """Observation of `state` from the PoV of `player`, as a string."""
-    pieces = []
-    if "player" in self.dict:
-      pieces.append(f"p{player}")
-    if (
-        "private_hand" in self.dict
-        and len(state.hands[player]) == self.hand_length
-    ):
-      pieces.append(f"hand:{state.hands[player]}")
-    if "rebid_state" in self.dict:
-      pieces.append(f"rebid:{[int(state.is_rebid)]}")
-    if "counts_state" in self.dict:
-      pieces.append(f"counts:{[int(state.is_terminal())]}")
-    if "bid_history" in self.dict:
-      for bid in range(len(state.bid_history)):
-        if np.any(state.bid_history[bid] == 1):
-          pieces.append("b:{}.".format(bid))
-    if "challenge_history" in self.dict:
-      for bid in range(len(state.challenge_history)):
-        if np.any(state.challenge_history[bid] == 1):
-          pieces.append("c:{}.".format(bid))
-    return " ".join(str(p) for p in pieces)
+    def set_from(self, state, player):
+        """Updates the observation tensor based on the current state from `player`'s POV."""
+        self.tensor.fill(0)
+
+        if "player" in self.dict:
+            self.dict["player"][player] = 1
+        if "current_round" in self.dict:
+            self.dict["current_round"][0] = state.current_round
+        if "current_phase" in self.dict:
+            self.dict["current_phase"][0] = state.current_phase
+        if "private_hand" in self.dict:
+            self.dict["private_hand"][:] = state.hands[player]
+        if "bets" in self.dict:
+            self.dict["bets"][:] = state.get_bets()
+        if "game_over" in self.dict:
+            self.dict["game_over"][0] = int(state.is_terminal())
+
+    def string_from(self, state, player):
+        """Returns a string representation of the observation from `player`'s perspective."""
+        pieces = []
+        if "player" in self.dict:
+            pieces.append(f"p{player}")
+        if "current_round" in self.dict:
+            pieces.append(f"round:{state.current_round}")
+        if "current_phase" in self.dict:
+            phase_str = "Drawing" if state.current_phase == 0 else "Betting"
+            pieces.append(f"phase:{phase_str}")
+        if "private_hand" in self.dict:
+            pieces.append(f"hand:{state.hands[player]}")
+        if "bets" in self.dict:
+            pieces.append(f"bets:{state.get_bets()}")
+        if "game_over" in self.dict:
+            pieces.append(f"game_over:{int(state.is_terminal())}")
+        
+        return " ".join(str(p) for p in pieces)
+
 
 
 # Register the game with the OpenSpiel library

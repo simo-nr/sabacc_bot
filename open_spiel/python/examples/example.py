@@ -26,6 +26,7 @@ FLAGS = flags.FLAGS
 
 # Game strings can just contain the name or the name followed by parameters
 # and arguments, e.g. "breakthrough(rows=6,columns=6)"
+# flags.DEFINE_string("game_string", "spike_sabacc", "Game string")
 flags.DEFINE_string("game_string", "spike_sabacc", "Game string")
 
 
@@ -49,18 +50,17 @@ def main(_):
     # The state can be three different types: chance node,
     # simultaneous node, or decision node
     if state.is_chance_node():
-      print("Chance node")
       # Chance node: sample an outcome
       outcomes = state.chance_outcomes()
       num_actions = len(outcomes)
-      print("Chance node, got " + str(num_actions) + " outcomes")
+      print("Chance node, got " + str(num_actions) + " outcomes: ")
+      print(outcomes)
       action_list, prob_list = zip(*outcomes)
       action = np.random.choice(action_list, p=prob_list)
       print("Sampled outcome: ",
             state.action_to_string(state.current_player(), action))
       state.apply_action(action)
     elif state.is_simultaneous_node():
-      print("Simultaneous node")
       # Simultaneous node: sample actions for all players.
       random_choice = lambda a: np.random.choice(a) if a else [0]
       chosen_actions = [
@@ -73,17 +73,29 @@ def main(_):
       ])
       state.apply_actions(chosen_actions)
     else:
-      print("Decision node")
       # Decision node: sample action for the single current player
       action = random.choice(state.legal_actions(state.current_player()))
       action_string = state.action_to_string(state.current_player(), action)
-      print("Player ", state.current_player(), ", randomly sampled action: ",
-            action_string)
+      
+      print("\033[91mPhase: ", state.phase_to_string(state.current_phase), "\033[0m")
+      print("Player ", state.current_player(), ", randomly sampled action: ", action_string)
+
       state.apply_action(action)
     print(str(state))
 
+
+  # print("get bets: ", state.get_bets())
+
+  # hand_sums, winning_score, winners, bets, winnings = state.returnReturns()
+  # print("Hand sums: ", hand_sums)
+  # print("Winning score: ", winning_score)
+  # print("Winners: ", winners)
+  # print("Bets: ", bets)
+  # print("Winnings: ", winnings)
+  # print("Returns: ", [winnings if i in winners else -bets[i] for i in range(2)])
   # Game is now done. Print utilities for each player
   returns = state.returns()
+  print("returns: ", returns)
   for pid in range(game.num_players()):
     print("Utility for player {} is {}".format(pid, returns[pid]))
 
