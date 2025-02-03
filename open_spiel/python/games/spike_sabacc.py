@@ -29,6 +29,7 @@ FOLD_ACTION = 3
 _MAX_NUM_PLAYERS = 10
 _MIN_NUM_PLAYERS = 2
 _INITIAL_HAND_SIZE = 2
+_INITIAL_FUNDS = 10
 _NUM_ROUNDS = 3
 _DECK = list(range(-6, 7))  # Cards from -6 to 6, including 0
 
@@ -90,13 +91,16 @@ class SpikeSabaccState(pyspiel.State):
         super().__init__(game)
         self._num_players = game.num_players()
         self._deck = game.deck.copy()
-        print("deck: ", self._deck)
+        # print("deck: ", self._deck)
         random.shuffle(self._deck)
-        print("shuffled deck: " , self._deck)
+        # print("shuffled deck: " , self._deck)
         
         # Initialize player hands with two random cards
         self.hands = [[self._deck.pop(), self._deck.pop()] for _ in range(self._num_players)]
         
+        # Each players funds
+        self.funds = [_INITIAL_FUNDS] * self._num_players
+
         # Betting history
         self.bets = [0] * self._num_players
         
@@ -107,6 +111,7 @@ class SpikeSabaccState(pyspiel.State):
         self._current_player = 0
         self.game_over = False
 
+    # not used
     def get_bets(self):
         return self.bets
 
@@ -142,6 +147,7 @@ class SpikeSabaccState(pyspiel.State):
         if action == DRAW_ACTION:
             self.hands[self.current_player()].append(self._deck.pop())
         elif action == BET_ACTION:
+            # self.funds[self.current_player()] -= 1
             self.bets[self.current_player()] += 1
         elif action == FOLD_ACTION:
             # fold by removing the player's hand
@@ -194,8 +200,12 @@ class SpikeSabaccState(pyspiel.State):
         return self.game_over
     
     def one_player_left(self, hands):
-        """Returns whether only one player has a non-empty hand."""
+        """Returns whether only one player has a non-empty hand -> has not fold."""
         return sum([len(hand) > 0 for hand in hands]) == 1
+    
+    def one_player_left_in_game(self, hands):
+        """Returns whether there is only one player left with chips."""
+        return sum([fund > 0 for fund in self.funds]) == 1
     
     def returns(self):
         """Returns the final scores for all players."""
@@ -212,7 +222,7 @@ class SpikeSabaccState(pyspiel.State):
         
         # Assign winnings
         winnings = sum(self.bets)/len(winners)
-        return [winnings if i in winners else -self.bets[i] for i in range(self._num_players)]
+        return [winnings-self.bets[i] if i in winners else -self.bets[i] for i in range(self._num_players)]
 
 
 class SpikeSabaccObserver:
@@ -231,7 +241,8 @@ class SpikeSabaccObserver:
         ]
 
         if iig_obs_type.private_info == pyspiel.PrivateInfoType.SINGLE_PLAYER:
-            pieces.append(("private_hand", _INITIAL_HAND_SIZE + _NUM_ROUNDS, (_INITIAL_HAND_SIZE + _NUM_ROUNDS,)))  # Player's hand
+            hand_size = _INITIAL_HAND_SIZE + _NUM_ROUNDS  # Maximum possible hand size
+            pieces.append(("private_hand", hand_size, (hand_size,)))  # Player's hand
 
         if iig_obs_type.public_info:
             pieces.append(("bets", num_players, (num_players,)))  # Current bets of all players
@@ -259,7 +270,9 @@ class SpikeSabaccObserver:
         if "current_phase" in self.dict:
             self.dict["current_phase"][0] = state.current_phase
         if "private_hand" in self.dict:
-            self.dict["private_hand"][:] = state.hands[player]
+            hand = np.full((_INITIAL_HAND_SIZE + _NUM_ROUNDS,), -999)  # Fill with -999
+            hand[:len(state.hands[player])] = state.hands[player]  # Copy actual hand
+            self.dict["private_hand"][:] = hand  # Store in observation tensor
         if "bets" in self.dict:
             self.dict["bets"][:] = state.get_bets()
         if "game_over" in self.dict:
