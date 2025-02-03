@@ -11,7 +11,7 @@ env = rl_environment.Environment("spike_sabacc")
 num_players = env.num_players
 num_actions = env.action_spec()["num_actions"]
 
-def trainEasyAgents(num_episodes=1000):
+def trainEasyAgents(num_episodes):
     # Create two Q-learning agents
     easyAgents = [
         tabular_qlearner.QLearner(player_id=idx, num_actions=num_actions)
@@ -20,7 +20,7 @@ def trainEasyAgents(num_episodes=1000):
 
     # Train the agents in self-play
     for cur_episode in range(num_episodes):
-        if cur_episode % 1000 == 0:
+        if cur_episode % 100 == 0:
             print(f"Episodes: {cur_episode}")
         
         time_step = env.reset()
@@ -36,7 +36,7 @@ def trainEasyAgents(num_episodes=1000):
     print("Easy agents trained!")
     return easyAgents
 
-def trainHardAgents(num_episodes=30000):
+def trainHardAgents(num_episodes):
     # Create two Q-learning agents
     agents = [
         tabular_qlearner.QLearner(player_id=idx, num_actions=num_actions)
@@ -44,7 +44,7 @@ def trainHardAgents(num_episodes=30000):
     ]
 
     for cur_episode in range(num_episodes):
-        if cur_episode % 1000 == 0:
+        if cur_episode % 100 == 0:
             print(f"Episodes: {cur_episode}")
         
         time_step = env.reset()
@@ -99,15 +99,15 @@ def test_agents(agent1, agent2, env, num_episodes=100):
 
 
 # Train the easy agents
-easyAgents = trainEasyAgents(num_episodes=1000)
+easyAgents = trainEasyAgents(num_episodes=100)
 # Train the hard agents
-agents = trainHardAgents(num_episodes=40000)
+agents = trainHardAgents(num_episodes=1000)
 # Test the two trained agents against each other
-win_rates1 = test_agents(easyAgents[0], agents[0], env, num_episodes=1000)
+win_rates1 = test_agents(easyAgents[0], agents[0], env, num_episodes=100)
 print(f"Easy agent win rate: {win_rates1[0]}")
 print(f"Hard agent win rate: {win_rates1[1]}")
 
-win_rates2 = test_agents(agents[0], easyAgents[0], env, num_episodes=1000)
+win_rates2 = test_agents(agents[0], easyAgents[0], env, num_episodes=100)
 print(f"Easy agent win rate: {win_rates2[1]}")
 print(f"Hard agent win rate: {win_rates2[0]}")
 

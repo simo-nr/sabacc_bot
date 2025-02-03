@@ -76,12 +76,15 @@ def main(_):
       # Decision node: sample action for the single current player
       action = random.choice(state.legal_actions(state.current_player()))
       action_string = state.action_to_string(state.current_player(), action)
-      
-      print("\033[91mPhase: ", state.phase_to_string(state.current_phase), "\033[0m")
-      print("Player ", state.current_player(), ", randomly sampled action: ", action_string)
 
+      print("\033[91mPhase: ", state.phase_to_string(state.current_phase), "\033[0m")
+      print("\033[91mPlayer ", state.current_player(), ", randomly sampled action: ", action_string, "\033[0m")
+      print("\033[92mbefore applying action:\033[0m")
+      print(str(state))
       state.apply_action(action)
-    print(str(state))
+      print("\033[94mafter applying action:\033[0m")
+      print(str(state))
+    
 
 
   # print("get bets: ", state.get_bets())
