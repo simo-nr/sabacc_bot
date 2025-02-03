@@ -25,11 +25,12 @@ STAND_ACTION = 0
 DRAW_ACTION = 1
 BET_ACTION = 2
 FOLD_ACTION = 3
+WAIT_ACTION = 4
 
 _MAX_NUM_PLAYERS = 10
 _MIN_NUM_PLAYERS = 2
 _INITIAL_HAND_SIZE = 2
-_INITIAL_FUNDS = 10
+_INITIAL_FUNDS = 5
 _NUM_ROUNDS = 3
 _DECK = list(range(-6, 7))  # Cards from -6 to 6, including 0
 
@@ -90,7 +91,8 @@ class SpikeSabaccState(pyspiel.State):
     def __init__(self, game):
         super().__init__(game)
         self._num_players = game.num_players()
-        self._deck = game.deck.copy()
+        self._OG_deck = game.deck.copy()
+        self._deck = self._OG_deck.copy()
         # print("deck: ", self._deck)
         random.shuffle(self._deck)
         # print("shuffled deck: " , self._deck)
@@ -109,7 +111,12 @@ class SpikeSabaccState(pyspiel.State):
         # 0: Drawing phase, 1: Betting phase
         self.current_phase = 0
         self._current_player = 0
+        self.round_over = False
         self.game_over = False
+
+    def reset_deck(self):
+        self._deck = self._OG_deck.copy()
+        random.shuffle(self._deck)
 
     # not used
     def get_bets(self):
@@ -119,7 +126,8 @@ class SpikeSabaccState(pyspiel.State):
         """String representation for debugging."""
         return (
             f"Hands: {self.hands}, Current Player: {self.current_player()}, "
-            f"Round: {self.current_round}, Bets: {self.bets}, Game Over: {self.game_over}"
+            f"Round: {self.current_round}, Phase: {self.phase_to_string(self.current_phase)}, "
+            f"Bets: {self.bets}, Funds: {self.funds}, Round Over: {self.round_over}, Game Over: {self.game_over}"
         )
     
     def is_chance_node(self):
@@ -135,23 +143,28 @@ class SpikeSabaccState(pyspiel.State):
 
     def legal_actions(self, player):
         """Returns the list of legal actions for the given player."""
-        if self.game_over or self.hands[player] == []:
-            return []
+        if self.game_over or self.round_over or self.hands[player] == []:
+            return [WAIT_ACTION]
         elif self.current_phase == 0:
             return [STAND_ACTION, DRAW_ACTION]
         else:
-            return [BET_ACTION, FOLD_ACTION]
+            if self.funds[player] > 0:
+                return [BET_ACTION, FOLD_ACTION]
+            else:
+                return [FOLD_ACTION]
 
     def apply_action(self, action):
         """Applies the chosen action."""
         if action == DRAW_ACTION:
             self.hands[self.current_player()].append(self._deck.pop())
         elif action == BET_ACTION:
-            # self.funds[self.current_player()] -= 1
+            self.funds[self.current_player()] -= 1
             self.bets[self.current_player()] += 1
         elif action == FOLD_ACTION:
             # fold by removing the player's hand
             self.hands[self.current_player()] = []
+        # elif action == WAIT_ACTION:
+        #     pass
         
         # Move to the next player
         self._current_player = (self.current_player() + 1) % self._num_players
@@ -163,8 +176,21 @@ class SpikeSabaccState(pyspiel.State):
                 self.current_round += 1
                 self.current_phase = 0
         
+        # check if round is over
+        if self.round_over:
+            self.round_over = False
+            # winner gets all bets
+            self.funds = [fund + winning for fund, winning in zip(self.funds, self.calc_winnings())]
+            # new hands
+            self.reset_deck()
+            self.hands = [[self._deck.pop(), self._deck.pop()] for _ in range(self._num_players)]
+            self.bets = [0] * self._num_players
+            self.current_round = 0
+        # check if round has ended
+        if self.current_round + 1 >= _NUM_ROUNDS or self.one_player_left_in_round(self.hands):
+            self.round_over = True
         # Check if game is over
-        if self.current_round >= _NUM_ROUNDS or self.one_player_left(self.hands):
+        if self.one_player_left_in_game():
             self.game_over = True
 
     def _action_to_string(self, player, action):
@@ -179,6 +205,8 @@ class SpikeSabaccState(pyspiel.State):
             return "Bet"
         elif action == FOLD_ACTION:
             return "Fold"
+        elif action == WAIT_ACTION:
+            return "Wait"
         else:
             print("action: ", action)
             raise ValueError(f"Unknown action: {action}")
@@ -196,33 +224,48 @@ class SpikeSabaccState(pyspiel.State):
 
     def is_terminal(self):
         """Returns whether the game is over."""
-        # or all but one player folded
         return self.game_over
     
-    def one_player_left(self, hands):
+    def one_player_left_in_round(self, hands):
         """Returns whether only one player has a non-empty hand -> has not fold."""
         return sum([len(hand) > 0 for hand in hands]) == 1
     
-    def one_player_left_in_game(self, hands):
+    def one_player_left_in_game(self):
         """Returns whether there is only one player left with chips."""
         return sum([fund > 0 for fund in self.funds]) == 1
     
     def returns(self):
-        """Returns the final scores for all players."""
-        if not self.game_over:
-            return [0] * self._num_players
-        
+        return self.funds
+    
+    def calc_winnings(self):
         # Compute final hand values
         hand_sums = [sum(hand) for hand in self.hands]
         # min score of player without empty hand
-        winning_score = min([sum(hand) for hand in self.hands if hand != []])
+        winning_score = abs(min([sum(hand) for hand in self.hands if hand != []]))
         # Filter out players with empty hands
         valid_players = [i for i in range(self._num_players) if self.hands[i]] 
-        winners = {i for i in valid_players if hand_sums[i] == winning_score}
+        winners = {i for i in valid_players if abs(hand_sums[i]) == winning_score}
         
         # Assign winnings
-        winnings = sum(self.bets)/len(winners)
-        return [winnings-self.bets[i] if i in winners else -self.bets[i] for i in range(self._num_players)]
+        winnings_pp = sum(self.bets)/len(winners)
+        return [winnings_pp if i in winners else 0 for i in range(self._num_players)]
+    
+    # def returns2(self):
+    #     """Returns the final scores for all players."""
+    #     if not self.game_over:
+    #         return [0] * self._num_players
+        
+    #     # Compute final hand values
+    #     hand_sums = [sum(hand) for hand in self.hands]
+    #     # min score of player without empty hand
+    #     winning_score = min([sum(hand) for hand in self.hands if hand != []])
+    #     # Filter out players with empty hands
+    #     valid_players = [i for i in range(self._num_players) if self.hands[i]] 
+    #     winners = {i for i in valid_players if hand_sums[i] == winning_score}
+        
+    #     # Assign winnings
+    #     winnings = sum(self.bets)/len(winners)
+    #     return [winnings-self.bets[i] if i in winners else -self.bets[i] for i in range(self._num_players)]
 
 
 class SpikeSabaccObserver:
