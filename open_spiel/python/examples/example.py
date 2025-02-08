@@ -46,11 +46,14 @@ def main(_):
   # Print the initial state
   print(str(state))
 
-  while not state.is_terminal():
+  i = 0
+  while not state.is_terminal() and i < 50:
+    i += 1
     # The state can be three different types: chance node,
     # simultaneous node, or decision node
     if state.is_chance_node():
       # Chance node: sample an outcome
+      print("\033[93mchance node\033[0m")
       outcomes = state.chance_outcomes()
       num_actions = len(outcomes)
       print("Chance node, got " + str(num_actions) + " outcomes: ")
@@ -59,7 +62,17 @@ def main(_):
       action = np.random.choice(action_list, p=prob_list)
       print("Sampled outcome: ",
             state.action_to_string(state.current_player(), action))
+      
+      print("\033[95mCurrent state: ", state.state_to_string(state.current_state), "\033[0m")
+      print("\033[95mCurrent state: ", state.current_state, "\033[0m")
+      print("\033[95mPlayer ", state.current_player(), ", randomly sampled action: ", state.action_to_string(state.current_player(), action), "\033[0m")
+      print("\033[95mbefore applying action:\033[0m")
+      print(str(state))
+
       state.apply_action(action)
+      print("\033[95mafter applying action:\033[0m")
+      print(str(state))
+
     elif state.is_simultaneous_node():
       # Simultaneous node: sample actions for all players.
       random_choice = lambda a: np.random.choice(a) if a else [0]
@@ -73,11 +86,13 @@ def main(_):
       ])
       state.apply_actions(chosen_actions)
     else:
+      print("\033[93mdecision node\033[0m")
       # Decision node: sample action for the single current player
-      action = random.choice(state.legal_actions(state.current_player()))
+      action = random.choice(state.legal_actions())
       action_string = state.action_to_string(state.current_player(), action)
 
-      print("\033[91mPhase: ", state.phase_to_string(state.current_phase), "\033[0m")
+      print("\033[91mCurrent state: ", state.state_to_string(state.current_state), "\033[0m")
+      print("\033[91mCurrent state: ", state.current_state, "\033[0m")
       print("\033[91mPlayer ", state.current_player(), ", randomly sampled action: ", action_string, "\033[0m")
       print("\033[92mbefore applying action:\033[0m")
       print(str(state))

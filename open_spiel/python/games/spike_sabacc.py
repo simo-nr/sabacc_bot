@@ -1,22 +1,9 @@
-# Copyright 2019 DeepMind Technologies Limited
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#      http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 
-# Lint as python3
 """Corellian Spike Sabacc implemented in Python."""
 
 import numpy as np
 import random
+import copy
 
 import pyspiel
 
@@ -27,12 +14,18 @@ BET_ACTION = 2
 FOLD_ACTION = 3
 WAIT_ACTION = 4
 
+DECIDE_STATE = 0
+APPLY_STATE = 1
+BET_STATE = 2
+DICE_STATE = 3
+DEAL_STATE = 4
+
 _MAX_NUM_PLAYERS = 10
 _MIN_NUM_PLAYERS = 2
 _INITIAL_HAND_SIZE = 2
-_INITIAL_FUNDS = 10
+_INITIAL_FUNDS = 3
 _NUM_ROUNDS = 3
-_DECK = list(range(-6, 7))  # Cards from -6 to 6, including 0
+_DECK = list(range(-10, 11))  # Cards from -6 to 6, including 0
 
 _GAME_TYPE = pyspiel.GameType(
     short_name="spike_sabacc",
@@ -69,7 +62,7 @@ class SpikeSabacc(pyspiel.Game):
 
     def __init__(self, params=None):
         super().__init__(_GAME_TYPE, _GAME_INFO, params or dict())
-        self.deck = _DECK.copy()
+        self.deck = copy.deepcopy(_DECK)
         self.num_rounds = _NUM_ROUNDS
 
     def new_initial_state(self):
@@ -89,51 +82,53 @@ class SpikeSabaccState(pyspiel.State):
     """State of a Corellian Spike Sabacc game."""
 
     def __init__(self, game):
+        print("\033[91minit game \033[0m")
         super().__init__(game)
         self._num_players = game.num_players()
-        self._OG_deck = game.deck.copy()
-        self._deck = self._OG_deck.copy()
-        # print("deck: ", self._deck)
-        random.shuffle(self._deck)
-        # print("shuffled deck: " , self._deck)
+
+        self._full_deck = copy.deepcopy(game.deck)
+        self.card_to_action = {card: idx for idx, card in enumerate(self._full_deck)}
+        self.action_to_card = {idx: card for idx, card in enumerate(self._full_deck)}
+        self._remaining_deck = copy.deepcopy(self._full_deck)
         
         # Initialize player hands with two random cards
-        self.hands = [[self._deck.pop(), self._deck.pop()] for _ in range(self._num_players)]
+        # random.shuffle(self._remaining_deck)        
+        self.hands = [[self._remaining_deck.pop(), self._remaining_deck.pop()] for _ in range(self._num_players)]
+        print("shuffled deck", self._remaining_deck)
+        print("deck size", len(self._remaining_deck))
+        print("initial hands ", self.hands)
         
+        self._chance_event_type = None # "deck" or "dice"
+
         # Each players funds
         self.funds = [_INITIAL_FUNDS] * self._num_players
-
         # Betting history
         self.bets = [0] * self._num_players
-        
         # Round tracking
-        self.current_round = 0
-        # 0: Drawing phase, 1: Betting phase
-        self.current_phase = 0
         self._current_player = 0
-        self.round_over = False
+        self._previous_starting_player = self._current_player
+        self.current_round = 0
+        self.current_state = DECIDE_STATE
+
+        self.hand_over = False
         self.game_over = False
-
-    def reset_deck(self):
-        self._deck = self._OG_deck.copy()
-        random.shuffle(self._deck)
-
-    # not used
-    def get_bets(self):
-        return self.bets
+        print("end of init hands: ", self.hands)
+        print(f"\033[93mDeck ID: {id(self._remaining_deck)}, Hands ID: {id(self.hands)}\033[0m")
 
     def __str__(self):
         """String representation for debugging."""
         return (
             f"Hands: {self.hands}, Current Player: {self.current_player()}, "
-            f"Round: {self.current_round}, Phase: {self.phase_to_string(self.current_phase)}, "
-            f"Bets: {self.bets}, Funds: {self.funds}, Round Over: {self.round_over}, Game Over: {self.game_over}"
+            f"Round: {self.current_round}, Phase: {self.state_to_string(self.current_state)}, "
+            f"Bets: {self.bets}, Funds: {self.funds}, Round Over: {self.hand_over}, Game Over: {self.game_over}"
         )
     
     def is_chance_node(self):
       """Returns whether the current node is a chance node."""
-      # currently never, later add dice phase
-      return 0
+      print("chance node hands: ", self.hands)
+      return (self.current_state == APPLY_STATE 
+              or self.current_state == DICE_STATE 
+              or self.current_state == DEAL_STATE)
 
     def current_player(self):
         """Returns the current player."""
@@ -143,50 +138,103 @@ class SpikeSabaccState(pyspiel.State):
 
     def legal_actions(self):
         """Returns the list of legal actions for the given player."""
+        print("legal actions hands: ", self.hands)        
         player = self.current_player()
-        if self.game_over or self.round_over or self.hands[player] == []:
+        if self.game_over or self.hand_over or self.hands[player] == []:
             return [WAIT_ACTION]
-        elif self.current_phase == 0:
+        elif self.current_state == DECIDE_STATE:
             return [STAND_ACTION, DRAW_ACTION]
+        elif self.funds[player] > 0:
+            return [BET_ACTION, FOLD_ACTION]
         else:
-            if self.funds[player] > 0:
-                return [BET_ACTION, FOLD_ACTION]
-            else:
-                return [FOLD_ACTION]
+            return [FOLD_ACTION, WAIT_ACTION]
 
     def _apply_action(self, action):
         """Applies the chosen action."""
-        if action == DRAW_ACTION:
-            self.hands[self.current_player()].append(self._deck.pop())
-        elif action == BET_ACTION:
-            self.funds[self.current_player()] -= 1
-            self.bets[self.current_player()] += 1
-        elif action == FOLD_ACTION:
-            self.hands[self.current_player()] = []
+        print("apply action hands: ", self.hands)
+        if self.is_chance_node():
+            # dice phase for every round
+            if self.current_state == DICE_STATE:
+                double_dice = False
+                if double_dice == True:
+                    self.current_state = DEAL_STATE
+                    self._chance_event_type = "deck"
+                else:
+                    self.current_state = DECIDE_STATE
+            if self.current_state == DEAL_STATE:
+                dealt_card = self.action_to_card[action]
+
+                print(f"Dealt card: {dealt_card}, Remaining deck: {self._remaining_deck}")
+                if dealt_card not in self._remaining_deck:
+                    raise ValueError(f"Attempted to deal a card {dealt_card} not in the deck: {self._remaining_deck}")
+                
+                self.hands[self._current_player].append(dealt_card)
+                self._remaining_deck.remove(dealt_card)
+
+                if len([hand for hand in self.hands if len(hand) == 2]) == self._num_players:
+                    # everyone has 2 cards, move on to decide state
+                    self.current_state = DECIDE_STATE
+                else:
+                    # move on to next player but dont change any state
+                    self._current_player = (self.current_player() + 1) % self._num_players
+                    # self._current_player = 50
+
+                
+            elif self.current_state == APPLY_STATE:
+                drawn_card = self.action_to_card[action]
+
+                print(f"Drawn card: {drawn_card}, Remaining deck: {self._remaining_deck}")
+                if drawn_card not in self._remaining_deck:
+                    raise ValueError(f"Card {drawn_card} is not in the remaining deck: {self._remaining_deck}")
+                
+                self.hands[self._current_player].append(drawn_card)
+                self._remaining_deck.remove(drawn_card)
+                # DECIDE state for next player
+                self._current_player = (self.current_player() + 1) % self._num_players
+                if self._current_player == 0:
+                    self.current_state = BET_STATE
+                else:
+                    self.current_state = DECIDE_STATE
+
+        elif action == DRAW_ACTION: # decision node with draw action
+            # DECIDE STATE to APPLY STATE
+            self.current_state = APPLY_STATE
+            self._chance_event_type = "deck"
+        else:
+            if action == BET_ACTION:
+                self.funds[self.current_player()] -= 1
+                self.bets[self.current_player()] += 1
+                
+            elif action == FOLD_ACTION:
+                print("\033[94m fold player ", self.current_player(), "\033[0m")
+                self.hands[self.current_player()] = []
+            
+            self._current_player = (self.current_player() + 1) % self._num_players
+            if self.current_player() == 0:
+                if self.current_state == DECIDE_STATE:
+                    self.current_state = BET_STATE
+                elif self.current_state == BET_STATE:
+                    self.current_state = DICE_STATE
+                    self._chance_event_type = "dice"
+
+            # check if round has ended
+            if self.current_round + 1 >= _NUM_ROUNDS or self.one_player_left_in_round(self.hands):
+                self.hand_over = True
         
-        # Move to the next player
-        self._current_player = (self.current_player() + 1) % self._num_players
-        # Move to the next phase or round
-        if self.current_player() == 0:
-            if self.current_phase == 0:
-                self.current_phase += 1
-            elif self.current_phase == 1:
-                self.current_round += 1
-                self.current_phase = 0
-        
-        # check if round is over
-        if self.round_over:
-            self.round_over = False
+        action = None
+        if self.hand_over:
+            print("hand over")
+            self.hand_over = False
             # winner gets all bets
             self.funds = [fund + winning for fund, winning in zip(self.funds, self.calc_winnings())]
-            # new hands TODO: needs to turn into chance node
-            self.reset_deck()
-            self.hands = [[self._deck.pop(), self._deck.pop()] for _ in range(self._num_players)]
             self.bets = [0] * self._num_players
+            self.hands = [[] for _ in range(self._num_players)]
+            self._remaining_deck = copy.deepcopy(self._full_deck)
+            print("\033[92m remaining deck after reset: ", self._remaining_deck, "\033[0m")
             self.current_round = 0
-        # check if round has ended
-        if self.current_round + 1 >= _NUM_ROUNDS or self.one_player_left_in_round(self.hands):
-            self.round_over = True
+            self.current_state = DEAL_STATE
+            self._chance_event_type = "deck"
+
         # Check if game is over
         if self.one_player_left_in_game():
             self.game_over = True
@@ -195,30 +243,25 @@ class SpikeSabaccState(pyspiel.State):
         """Action -> string."""
         if player == pyspiel.PlayerId.CHANCE:
             return f"Deal: {action}"
-        elif action == STAND_ACTION:
-            return "Stand"
-        elif action == DRAW_ACTION:
-            return "Draw"
-        elif action == BET_ACTION:
-            return "Bet"
-        elif action == FOLD_ACTION:
-            return "Fold"
-        elif action == WAIT_ACTION:
-            return "Wait"
+        elif self.is_chance_node():
+            return f"Take {action}"
         else:
-            print("action: ", action)
-            raise ValueError(f"Unknown action: {action}")
+            return ["Stand", "Draw", "Bet", "Fold", "Wait"][action]
         
-    def phase_to_string(self, phase):
+    def state_to_string(self, phase):
         """Phase -> string."""
-        return ["Drawing", "Betting"][phase]
+        return ["Decide", "Apply", "Bet", "Dice", "Deal"][phase]
     
     def chance_outcomes(self):
-      """Returns possible chance outcomes and their probabilities."""
-      if self.is_chance_node():
-          probabilities = 1.0 / len(self._deck)
-          return [(i, probabilities) for i in range(len(self._deck))]
-      return []
+        print("chance outcomes hand: ", self.hands)
+        if self._chance_event_type == "deck":
+            remaining_cards = len(self._remaining_deck)
+            probability = 1.0 / remaining_cards
+            return [(self.card_to_action[card], probability) for card in self._remaining_deck]
+        elif self._chance_event_type == "dice":
+            return [(i, 1.0 / 6) for i in range(1, 7)]  # 6-sided die
+        if self._chance_event_type is None:
+            raise ValueError("Chance event type is not set!")
 
     def is_terminal(self):
         """Returns whether the game is over."""
@@ -229,8 +272,8 @@ class SpikeSabaccState(pyspiel.State):
         return sum([len(hand) > 0 for hand in hands]) == 1
     
     def one_player_left_in_game(self):
-        """Returns whether there is only one player left with chips."""
-        return sum([fund > 0 for fund in self.funds]) == 1
+        """Returns whether there is only one player left with chips, in the pot or in their funds."""
+        return sum([(fund > 0 or self.bets[i] > 0) for i, fund in enumerate(self.funds)]) == 1
     
     def returns(self):
         return self.funds
@@ -243,10 +286,14 @@ class SpikeSabaccState(pyspiel.State):
         # Filter out players with empty hands
         valid_players = [i for i in range(self._num_players) if self.hands[i]] 
         winners = {i for i in valid_players if abs(hand_sums[i]) == winning_score}
-        
-        # Assign winnings
-        winnings_pp = sum(self.bets)/len(winners)
-        return [winnings_pp if i in winners else 0 for i in range(self._num_players)]
+
+        if not winners:
+            # no winners, everybody gets money back
+            return self.bets
+        else:
+            # Assign winnings
+            winnings_pp = sum(self.bets)/len(winners)
+            return [winnings_pp if i in winners else 0 for i in range(self._num_players)]
 
 
 class SpikeSabaccObserver:
@@ -323,5 +370,4 @@ class SpikeSabaccObserver:
 
 
 # Register the game with the OpenSpiel library
-
 pyspiel.register_game(_GAME_TYPE, SpikeSabacc)
