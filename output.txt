@@ -1,0 +1,197 @@
+init game 
+shuffled deck [-10, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6]
+deck size 17
+initial hands  [[10, 9], [8, 7]]
+end of init hands:  [[10, 9], [8, 7]]
+Deck ID: 4352668096, Hands ID: 4352667968
+chance node hands:  [[10, 9], [8, 7]]
+chance node hands:  [[10, 9], [8, 7]]
+init game 
+shuffled deck [-10, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6]
+deck size 17
+initial hands  [[10, 9], [8, 7]]
+end of init hands:  [[10, 9], [8, 7]]
+Deck ID: 4352666624, Hands ID: 4352666560
+legal actions hands:  [[10, 9], [8, 7]]
+init game 
+shuffled deck [-10, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6]
+deck size 17
+initial hands  [[10, 9], [8, 7]]
+end of init hands:  [[10, 9], [8, 7]]
+Deck ID: 4352666368, Hands ID: 4352665792
+apply action hands:  [[10, 9], [8, 7]]
+chance node hands:  [[10, 9], [8, 7]]
+chance node hands:  [[10, 9], [8, 7]]
+chance node hands:  [[10, 9], [8, 7]]
+init game 
+shuffled deck [-10, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6]
+deck size 17
+initial hands  [[10, 9], [8, 7]]
+end of init hands:  [[10, 9], [8, 7]]
+Deck ID: 4352665536, Hands ID: 4352665472
+legal actions hands:  [[10, 9], [8, 7]]
+init game 
+shuffled deck [-10, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6]
+deck size 17
+initial hands  [[10, 9], [8, 7]]
+end of init hands:  [[10, 9], [8, 7]]
+Deck ID: 4352664640, Hands ID: 4352664256
+apply action hands:  [[10, 9], [8, 7]]
+chance node hands:  [[10, 9], [8, 7]]
+chance node hands:  [[10, 9], [8, 7]]
+chance node hands:  [[10, 9], [8, 7]]
+init game 
+shuffled deck [-10, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6]
+deck size 17
+initial hands  [[10, 9], [8, 7]]
+end of init hands:  [[10, 9], [8, 7]]
+Deck ID: 4352664064, Hands ID: 4352663872
+legal actions hands:  [[10, 9], [8, 7]]
+init game 
+shuffled deck [-10, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6]
+deck size 17
+initial hands  [[10, 9], [8, 7]]
+end of init hands:  [[10, 9], [8, 7]]
+Deck ID: 4352663104, Hands ID: 4352662528
+apply action hands:  [[10, 9], [8, 7]]
+chance node hands:  [[10, 9], [8, 7]]
+chance node hands:  [[10, 9], [8, 7]]
+chance node hands:  [[10, 9], [8, 7]]
+init game 
+shuffled deck [-10, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6]
+deck size 17
+initial hands  [[10, 9], [8, 7]]
+end of init hands:  [[10, 9], [8, 7]]
+Deck ID: 4352662336, Hands ID: 4352662272
+legal actions hands:  [[10, 9], [8, 7]]
+init game 
+shuffled deck [-10, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6]
+deck size 17
+initial hands  [[10, 9], [8, 7]]
+end of init hands:  [[10, 9], [8, 7]]
+Deck ID: 4352661376, Hands ID: 4352660928
+apply action hands:  [[10, 9], [8, 7]]
+chance node hands:  [[10, 9], [8, 7]]
+chance node hands:  [[10, 9], [8, 7]]
+chance node hands:  [[10, 9], [8, 7]]
+legal actions hands:  [[10, 9], [8, 7]]
+init game 
+shuffled deck [-10, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6]
+deck size 17
+initial hands  [[10, 9], [8, 7]]
+end of init hands:  [[10, 9], [8, 7]]
+Deck ID: 4352660608, Hands ID: 4352660160
+apply action hands:  [[10, 9], [8, 7]]
+chance node hands:  [[10, 9], [8, 7]]
+chance node hands:  [[10, 9], [8, 7]]
+chance node hands:  [[10, 9], [8, 7]]
+init game 
+shuffled deck [-10, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6]
+deck size 17
+initial hands  [[10, 9], [8, 7]]
+end of init hands:  [[10, 9], [8, 7]]
+Deck ID: 4339564096, Hands ID: 4339550080
+legal actions hands:  [[10, 9], [8, 7]]
+init game 
+shuffled deck [-10, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6]
+deck size 17
+initial hands  [[10, 9], [8, 7]]
+end of init hands:  [[10, 9], [8, 7]]
+Deck ID: 4339649536, Hands ID: 4347054592
+apply action hands:  [[10, 9], [8, 7]]
+chance node hands:  [[10, 9], [8, 7]]
+init game 
+shuffled deck [-10, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6]
+deck size 17
+initial hands  [[10, 9], [8, 7]]
+end of init hands:  [[10, 9], [8, 7]]
+Deck ID: 4347055680, Hands ID: 4347055296
+apply action hands:  [[10, 9], [8, 7]]
+chance node hands:  [[10, 9], [8, 7]]
+init game 
+shuffled deck [-10, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6]
+deck size 17
+initial hands  [[10, 9], [8, 7]]
+end of init hands:  [[10, 9], [8, 7]]
+Deck ID: 4347055296, Hands ID: 4347055680
+apply action hands:  [[10, 9], [8, 7]]
+chance node hands:  [[10, 9], [8, 7]]
+chance node hands:  [[10, 9], [8, 7]]
+chance node hands:  [[10, 9], [8, 7]]
+init game 
+shuffled deck [-10, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6]
+deck size 17
+initial hands  [[10, 9], [8, 7]]
+end of init hands:  [[10, 9], [8, 7]]
+Deck ID: 4352660160, Hands ID: 4352660608
+legal actions hands:  [[10, 9], [8, 7]]
+init game 
+shuffled deck [-10, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6]
+deck size 17
+initial hands  [[10, 9], [8, 7]]
+end of init hands:  [[10, 9], [8, 7]]
+Deck ID: 4339562816, Hands ID: 4352470784
+apply action hands:  [[10, 9], [8, 7]]
+chance node hands:  [[10, 9], [8, 7]]
+init game 
+shuffled deck [-10, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6]
+deck size 17
+initial hands  [[10, 9], [8, 7]]
+end of init hands:  [[10, 9], [8, 7]]
+Deck ID: 4352469952, Hands ID: 4352470016
+apply action hands:  [[10, 9], [8, 7]]
+chance node hands:  [[10, 9], [8, 7]]
+init game 
+shuffled deck [-10, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6]
+deck size 17
+initial hands  [[10, 9], [8, 7]]
+end of init hands:  [[10, 9], [8, 7]]
+Deck ID: 4347055680, Hands ID: 4347055296
+apply action hands:  [[10, 9], [8, 7]]
+chance node hands:  [[10, 9], [8, 7]]
+ fold player  1 
+hand over
+ remaining deck after reset:  [-10, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] 
+chance node hands:  [[], []]
+chance node hands:  [[], []]
+legal actions hands:  [[], []]
+init game 
+shuffled deck [-10, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6]
+deck size 17
+initial hands  [[10, 9], [8, 7]]
+end of init hands:  [[10, 9], [8, 7]]
+Deck ID: 4352661376, Hands ID: 4352660224
+apply action hands:  [[], []]
+chance node hands:  [[], []]
+Dealt card: -6, Remaining deck: [-10, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+chance node hands:  [[-6], []]
+chance node hands:  [[-6], []]
+legal actions hands:  [[-6], []]
+init game 
+shuffled deck [-10, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6]
+deck size 17
+initial hands  [[10, 9], [8, 7]]
+end of init hands:  [[10, 9], [8, 7]]
+Deck ID: 4352661568, Hands ID: 4352470016
+apply action hands:  [[-6], []]
+chance node hands:  [[-6], []]
+Dealt card: -6, Remaining deck: [-10, -9, -8, -7, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+Traceback (most recent call last):
+  File "/Users/me/Documents/Projects/fluff/openspiel/open_spiel/test.py", line 19, in <module>
+    states = get_all_states.get_all_states(game, depth_limit=5)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/me/Documents/Projects/fluff/openspiel/open_spiel/open_spiel/python/algorithms/get_all_states.py", line 128, in get_all_states
+    _get_subgames_states(
+  File "/Users/me/Documents/Projects/fluff/openspiel/open_spiel/open_spiel/python/algorithms/get_all_states.py", line 82, in _get_subgames_states
+    _get_subgames_states(state_for_search, all_states, depth_limit, depth + 1,
+  File "/Users/me/Documents/Projects/fluff/openspiel/open_spiel/open_spiel/python/algorithms/get_all_states.py", line 82, in _get_subgames_states
+    _get_subgames_states(state_for_search, all_states, depth_limit, depth + 1,
+  File "/Users/me/Documents/Projects/fluff/openspiel/open_spiel/open_spiel/python/algorithms/get_all_states.py", line 82, in _get_subgames_states
+    _get_subgames_states(state_for_search, all_states, depth_limit, depth + 1,
+  [Previous line repeated 2 more times]
+  File "/Users/me/Documents/Projects/fluff/openspiel/open_spiel/open_spiel/python/algorithms/get_all_states.py", line 81, in _get_subgames_states
+    state_for_search = state.child(action)
+                       ^^^^^^^^^^^^^^^^^^^
+  File "/Users/me/Documents/Projects/fluff/openspiel/open_spiel/open_spiel/python/games/spike_sabacc.py", line 169, in _apply_action
+    raise ValueError(f"Attempted to deal a card {dealt_card} not in the deck: {self._remaining_deck}")
+ValueError: Attempted to deal a card -6 not in the deck: [-10, -9, -8, -7, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
